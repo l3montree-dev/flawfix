@@ -30,6 +30,7 @@ import (
 	"github.com/l3montree-dev/devguard/internal/core/normalize"
 	"github.com/l3montree-dev/devguard/internal/database"
 	"github.com/l3montree-dev/devguard/internal/database/models"
+
 	"github.com/l3montree-dev/devguard/internal/utils"
 	"github.com/package-url/packageurl-go"
 	"github.com/pkg/errors"
@@ -54,6 +55,7 @@ type componentRepository interface {
 
 type assetRepository interface {
 	Save(tx core.DB, asset *models.Asset) error
+	Transaction(txFunc func(core.DB) error) error
 }
 
 type flawService interface {
@@ -239,7 +241,7 @@ func buildBomRefMap(bom normalize.SBOM) map[string]cdx.Component {
 
 func (s *service) UpdateSBOM(asset models.Asset, scanType string, currentVersion string, sbom normalize.SBOM) error {
 	// load the asset components
-	assetComponents, err := s.componentRepository.LoadAssetComponents(nil, asset, scanType, currentVersion)
+	AssetComponents, err := s.componentRepository.LoadAssetComponents(nil, asset, scanType, currentVersion)
 	if err != nil {
 		return errors.Wrap(err, "could not load asset components")
 	}
@@ -329,7 +331,7 @@ func (s *service) UpdateSBOM(asset models.Asset, scanType string, currentVersion
 		return err
 	}
 
-	return s.componentRepository.HandleStateDiff(nil, asset.ID, currentVersion, assetComponents, dependencies)
+	return s.componentRepository.HandleStateDiff(nil, asset.ID, currentVersion, AssetComponents, dependencies)
 }
 
 func (s *service) UpdateAssetRequirements(asset models.Asset, responsible string, justification string) error {
